@@ -1,2 +1,5 @@
 bin/
 obj/
+
+# Lokalne ustawienia z kluczem API (nie commitować)
+appsettings.local.json
