@@ -1,6 +1,6 @@
 name: Paczka z kodem (zip)
 
-# Buduje archiwum zip z samym kodem źródłowym. Nic nie jest kompilowane.
+# Buduje archiwum zip tylko z folderu src/. Nic nie jest kompilowane.
 # W paczce są wyłącznie pliki śledzone przez git, więc nie ma w niej bin/, obj/
 # ani lokalnych ustawień (appsettings.local.json).
 on:
@@ -27,13 +27,17 @@ jobs:
           ref="${GITHUB_REF_NAME//\//-}"
           echo "file=agenticSearch-${ref}-${GITHUB_SHA::7}.zip" >> "$GITHUB_OUTPUT"
 
-      - name: Spakuj kod (git archive, bez kompilacji)
+      - name: Spakuj folder src (git archive, bez kompilacji)
         run: |
-          git archive --format=zip --prefix=agenticSearch/ -o "${{ steps.name.outputs.file }}" HEAD
+          git archive --format=zip --prefix=agenticSearch/ -o "${{ steps.name.outputs.file }}" HEAD src
           unzip -l "${{ steps.name.outputs.file }}" | tail -n 1
 
-      - name: Sprawdź, że w paczce nie ma wyników kompilacji ani sekretów
+      - name: Sprawdź, że w paczce jest tylko src, bez wyników kompilacji i sekretów
         run: |
+          if unzip -Z1 "${{ steps.name.outputs.file }}" | grep -vE '^agenticSearch/(src/.*)?$'; then
+            echo "::error::Paczka zawiera pliki spoza folderu src"
+            exit 1
+          fi
           if unzip -Z1 "${{ steps.name.outputs.file }}" | grep -E '(^|/)(bin|obj)/|appsettings\.local\.json$'; then
             echo "::error::Paczka zawiera pliki, których nie powinno w niej być"
             exit 1
