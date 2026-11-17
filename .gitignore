@@ -3,3 +3,4 @@ obj/
 
 # Lokalne ustawienia z kluczem API (nie commitować)
 appsettings.local.json
+scenariusze/ostatni-przebieg.log

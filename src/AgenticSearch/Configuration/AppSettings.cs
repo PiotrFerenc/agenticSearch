@@ -54,7 +54,7 @@ public sealed record AppSettings(
 
         var apiKey = config["ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-            errors.Add(new ConfigurationError("Brak klucza API. Ustaw zmienną OPENROUTER_API_KEY albo ApiKey w appsettings.local.json."));
+            errors.Add(new ConfigurationError("Brak klucza API. Ustaw zmienną OPENROUTER_API_KEY albo ApiKey w appsettings.json (lepiej w appsettings.local.json, który jest poza gitem)."));
 
         var model = Fallback(config["Model"], "nvidia/nemotron-3.5-lightning:free");
 

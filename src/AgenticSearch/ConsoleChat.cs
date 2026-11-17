@@ -23,9 +23,20 @@ public sealed class ConsoleChat(
             var input = Console.ReadLine();
             if (string.IsNullOrWhiteSpace(input)) break;
 
-            await foreach (var update in agent.RunStreamingAsync(input, session))
-                Console.Write(update.Text);
+            try
+            {
+                await foreach (var update in agent.RunStreamingAsync(input, session))
+                    Console.Write(update.Text);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                // Np. 401 (zły klucz API), 429 (limit darmowego modelu), brak sieci.
+                Console.Error.WriteLine($"\nBłąd wywołania modelu: {FirstLine(e.Message)}");
+                Console.Error.WriteLine("Sprawdź klucz API, nazwę modelu i limity w OpenRouter, po czym spróbuj ponownie.");
+            }
             Console.WriteLine("\n");
         }
     }
+
+    private static string FirstLine(string s) => s.Split('\n', 2)[0].Trim();
 }
