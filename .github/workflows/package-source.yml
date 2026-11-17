@@ -1,0 +1,52 @@
+name: Paczka z kodem (zip)
+
+# Buduje archiwum zip z samym kodem źródłowym. Nic nie jest kompilowane.
+# W paczce są wyłącznie pliki śledzone przez git, więc nie ma w niej bin/, obj/
+# ani lokalnych ustawień (appsettings.local.json).
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # potrzebne tylko do dołączenia paczki do wydania przy tagu v*
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ustal nazwę paczki
+        id: name
+        run: |
+          ref="${GITHUB_REF_NAME//\//-}"
+          echo "file=agenticSearch-${ref}-${GITHUB_SHA::7}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Spakuj kod (git archive, bez kompilacji)
+        run: |
+          git archive --format=zip --prefix=agenticSearch/ -o "${{ steps.name.outputs.file }}" HEAD
+          unzip -l "${{ steps.name.outputs.file }}" | tail -n 1
+
+      - name: Sprawdź, że w paczce nie ma wyników kompilacji ani sekretów
+        run: |
+          if unzip -Z1 "${{ steps.name.outputs.file }}" | grep -E '(^|/)(bin|obj)/|appsettings\.local\.json$'; then
+            echo "::error::Paczka zawiera pliki, których nie powinno w niej być"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agenticSearch-source
+          path: ${{ steps.name.outputs.file }}
+          if-no-files-found: error
+
+      - name: Dołącz paczkę do wydania (tylko tagi v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "${{ steps.name.outputs.file }}" --title "$GITHUB_REF_NAME" --generate-notes
